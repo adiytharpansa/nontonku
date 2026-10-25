@@ -1,0 +1,2 @@
+-keep class org.schabi.newpipe.** { *; }
+-dontwarn org.mozilla.javascript.**

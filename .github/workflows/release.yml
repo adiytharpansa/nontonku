@@ -1,0 +1,33 @@
+name: Release APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v6
+        with: { gradle-version: "8.10.2" }
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon
+      - name: Siapkan berkas rilis
+        run: cp app/build/outputs/apk/debug/app-debug.apk NontonKu-1.0.0.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: NontonKu 1.0.0
+          body: |
+            Aplikasi nonton YouTube untuk Android, ditulis dari nol (Kotlin + Jetpack Compose).
+
+            - Beranda (trending + topik), Pencarian + saran + muat lanjutan
+            - Pemain video Media3 (DASH/HLS/progresif dari NewPipeExtractor di perangkat)
+            - Halaman channel, komentar, video terkait, deskripsi
+            - Koleksi lokal: riwayat tontonan + Tandai
+
+            Semua data & stream diekstrak langsung di perangkat lewat NewPipeExtractor — tanpa server perantara, tanpa login.
+            APK debug — pasang langsung di Android 7.0+.
+          files: NontonKu-1.0.0.apk
