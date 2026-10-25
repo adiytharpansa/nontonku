@@ -10,7 +10,8 @@ import org.schabi.newpipe.extractor.comments.CommentsInfo
 import org.schabi.newpipe.extractor.localization.ContentCountry
 import org.schabi.newpipe.extractor.localization.Localization
 import org.schabi.newpipe.extractor.search.SearchExtractor
-import org.schabi.newpipe.extractor.services.youtube.search.YoutubeSearchQueryHandlerFactory
+import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
+import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
@@ -102,7 +103,7 @@ object NpRepository {
         val extractor = searchExtractor ?: return emptyList()
         val page = searchPage ?: return emptyList()
         if (!searchHasNext) return emptyList()
-        val result = extractor.getNextPage(page)
+        val result = extractor.getPage(page)
         searchPage = result.nextPage
         searchHasNext = result.hasNextPage()
         return result.items.mapNotNull { mapItem(it) }
@@ -113,7 +114,7 @@ object NpRepository {
     fun suggestions(query: String): List<String> = try {
         init()
         val service = NewPipe.getService(0)
-        service.suggestionExtractor.getSuggestionsList(query) ?: emptyList()
+        service.suggestionExtractor.suggestionList(query) ?: emptyList()
     } catch (e: Exception) {
         emptyList()
     }
@@ -140,13 +141,16 @@ object NpRepository {
         var commentsError: String? = null
         try {
             val cInfo = CommentsInfo.getInfo(url)
-            comments = cInfo.comments.map { c ->
+            if (cInfo.isCommentsDisabled) {
+                commentsError = "Komentar dimatikan untuk video ini."
+            }
+            comments = cInfo.relatedItems.map { c ->
                 CommentItem(
-                    author = c.author ?: "",
-                    text = c.commentText ?: "",
-                    avatar = bestImage(c.authorAvatars),
-                    likeCount = c.likeCount,
-                    published = try { c.textualPublishedDate ?: "" } catch (e: Exception) { "" },
+                    author = c.uploaderName ?: "",
+                    text = c.commentText?.content ?: "",
+                    avatar = bestImage(c.uploaderAvatars),
+                    likeCount = c.likeCount.toLong(),
+                    published = try { c.textualUploadDate ?: "" } catch (e: Exception) { "" },
                 )
             }
         } catch (e: Exception) {
@@ -174,12 +178,28 @@ object NpRepository {
         init()
         val info = ChannelInfo.getInfo(url)
         val subs = info.subscriberCount
+        // Di extractor v0.26.x, video channel tidak lagi menempel di ChannelInfo —
+        // diambil dari tab "videos" lewat ChannelTabInfo.
+        val videos = try {
+            val tab = info.tabs.orEmpty().firstOrNull { t ->
+                t.contentFilters?.contains("videos") == true
+            }
+            if (tab != null) {
+                ChannelTabInfo.getInfo(NewPipe.getService(0), tab)
+                    .relatedItems.mapNotNull { mapItem(it) }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "tab video channel gagal", e)
+            emptyList()
+        }
         return ChannelDetail(
             name = info.name ?: "",
             avatar = bestImage(info.avatars),
             subscriberText = if (subs >= 0) formatCount(subs) + " subscriber" else "",
             description = info.description ?: "",
-            videos = info.relatedItems?.mapNotNull { mapItem(it) } ?: emptyList(),
+            videos = videos,
         )
     }
 
