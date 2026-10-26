@@ -1,7 +1,8 @@
-package com.app.nontonku.ui
+package com.app.yourtube.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -32,14 +33,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.app.nontonku.R
-import com.app.nontonku.theme.Paper
+import com.app.yourtube.R
+import com.app.yourtube.theme.Paper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NontonApp(vm: MainViewModel) {
+fun YourtubeApp(vm: MainViewModel) {
     val stack by vm.stack.collectAsState()
     val notice by vm.notice.collectAsState()
+    val fullscreen by vm.fullscreen.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val current = stack.last()
 
@@ -53,7 +55,7 @@ fun NontonApp(vm: MainViewModel) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            if (!fullscreen) TopAppBar(
                 title = {
                     if (current == Screen.WATCH || current == Screen.CHANNEL) {
                         Text(if (current == Screen.WATCH) "Sedang diputar" else "Channel", fontWeight = FontWeight.Bold)
@@ -61,7 +63,7 @@ fun NontonApp(vm: MainViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(painterResource(R.drawable.ic_logo_mark), contentDescription = null, modifier = Modifier.size(28.dp))
                             Spacer(Modifier.size(10.dp))
-                            Text("NontonKu", fontWeight = FontWeight.ExtraBold)
+                            Text("Yourtube", fontWeight = FontWeight.ExtraBold)
                         }
                     }
                 },
@@ -101,7 +103,7 @@ fun NontonApp(vm: MainViewModel) {
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        Row(Modifier.padding(padding)) {
+        Box(if (fullscreen) Modifier else Modifier.padding(padding)) {
             when (current) {
                 Screen.HOME -> HomeScreen(vm)
                 Screen.SEARCH -> SearchScreen(vm)

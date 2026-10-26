@@ -1,4 +1,4 @@
-package com.app.nontonku.data
+package com.app.yourtube.data
 
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -9,7 +9,7 @@ import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
 import java.util.concurrent.TimeUnit
 
 /** Pengunduh NewPipeExtractor di atas OkHttp (pola resmi NewPipe). */
-class NpDownloader : Downloader() {
+class ExtractorDownloader : Downloader() {
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -19,19 +19,14 @@ class NpDownloader : Downloader() {
     override fun execute(request: Request): Response {
         val url = request.url()
         val builder = okhttp3.Request.Builder().url(url)
-        var hasUa = false
+
+        var hasUserAgent = false
         request.headers().forEach { (name, values) ->
-            values.forEach { value ->
-                builder.addHeader(name, value)
-                if (name.equals("User-Agent", ignoreCase = true)) hasUa = true
-            }
+            values.forEach { value -> builder.addHeader(name, value) }
+            if (name.equals("User-Agent", ignoreCase = true)) hasUserAgent = true
         }
-        if (!hasUa) {
-            builder.header(
-                "User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-            )
-        }
+        if (!hasUserAgent) builder.header("User-Agent", BROWSER_USER_AGENT)
+
         val data = request.dataToSend()
         when (request.httpMethod().uppercase()) {
             "POST" -> builder.post((data ?: ByteArray(0)).toRequestBody())
@@ -40,6 +35,7 @@ class NpDownloader : Downloader() {
             "HEAD" -> builder.head()
             else -> builder.get()
         }
+
         client.newCall(builder.build()).execute().use { resp ->
             if (resp.code == 429) throw ReCaptchaException("reCaptcha diperlukan", url)
             val body = resp.body?.string()

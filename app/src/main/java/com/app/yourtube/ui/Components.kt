@@ -1,11 +1,10 @@
-package com.app.nontonku.ui
+package com.app.yourtube.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,11 +27,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.app.nontonku.data.NpRepository
-import com.app.nontonku.data.VideoItem
-import com.app.nontonku.theme.Brand
-import com.app.nontonku.theme.Mist
-import com.app.nontonku.theme.Slate
+import com.app.yourtube.data.VideoRepository
+import com.app.yourtube.data.VideoItem
+import com.app.yourtube.theme.Brand
+import com.app.yourtube.theme.Mist
+import com.app.yourtube.theme.Slate
 
 @Composable
 fun VideoCard(item: VideoItem, onClick: (VideoItem) -> Unit) {
@@ -57,14 +56,14 @@ fun VideoCard(item: VideoItem, onClick: (VideoItem) -> Unit) {
                 Box(
                     Modifier.align(Alignment.BottomEnd).padding(8.dp)
                         .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
-                ) { Text(NpRepository.formatDuration(item.durationSec), color = Color.White, fontSize = 11.sp) }
+                ) { Text(VideoRepository.formatDuration(item.durationSec), color = Color.White, fontSize = 11.sp) }
             }
         }
         Spacer(Modifier.height(8.dp))
         Text(item.title, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 15.sp)
         val meta = buildString {
             append(item.uploader)
-            if (item.viewCount >= 0) append(" • ${NpRepository.formatCount(item.viewCount)} x ditonton")
+            if (item.viewCount >= 0) append(" • ${VideoRepository.formatCount(item.viewCount)} x ditonton")
             if (item.uploadDate.isNotBlank()) append(" • ${item.uploadDate}")
         }
         Text(meta, color = Slate, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)

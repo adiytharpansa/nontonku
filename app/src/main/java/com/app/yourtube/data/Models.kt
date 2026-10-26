@@ -1,4 +1,4 @@
-package com.app.nontonku.data
+package com.app.yourtube.data
 
 import kotlinx.serialization.Serializable
 
@@ -26,9 +26,23 @@ data class WatchDetail(
     val hlsUrl: String? = null,
     val progressiveUrl: String? = null,
     val progressiveLabel: String = "",
+    /** Pilihan kualitas video-saja (diurutkan dari tertinggi), digabung dengan [audioUrl] saat diputar. */
+    val qualities: List<VideoQuality> = emptyList(),
+    val audioUrl: String? = null,
     val related: List<VideoItem> = emptyList(),
     val comments: List<CommentItem> = emptyList(),
     val commentsError: String? = null,
+) {
+    val hasPlayableStream: Boolean
+        get() = dashUrl != null || hlsUrl != null || progressiveUrl != null ||
+            (qualities.isNotEmpty() && audioUrl != null)
+}
+
+/** Satu pilihan kualitas video-saja, mis. "1080p" atau "720p60". */
+data class VideoQuality(
+    val label: String,
+    val height: Int,
+    val url: String,
 )
 
 data class CommentItem(

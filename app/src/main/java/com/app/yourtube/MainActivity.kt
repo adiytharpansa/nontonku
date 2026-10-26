@@ -1,4 +1,4 @@
-package com.app.nontonku
+package com.app.yourtube
 
 import android.graphics.Color
 import android.os.Bundle
@@ -8,9 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.app.nontonku.theme.NontonKuTheme
-import com.app.nontonku.ui.MainViewModel
-import com.app.nontonku.ui.NontonApp
+import com.app.yourtube.theme.YourtubeTheme
+import com.app.yourtube.ui.MainViewModel
+import com.app.yourtube.ui.YourtubeApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,10 +23,10 @@ class MainActivity : ComponentActivity() {
         // Kait uji otomatis (emulator): buka video pertama di beranda tanpa sentuhan.
         val autoFirst = intent?.getIntExtra("auto_first", 0) == 1
         setContent {
-            NontonKuTheme {
+            YourtubeTheme {
                 val vm: MainViewModel = viewModel()
                 vm.applyAutoFirst(autoFirst)
-                NontonApp(vm)
+                YourtubeApp(vm)
             }
         }
     }

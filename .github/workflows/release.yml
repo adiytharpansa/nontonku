@@ -15,13 +15,13 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
       - name: Siapkan berkas rilis
-        run: cp app/build/outputs/apk/debug/app-debug.apk NontonKu-1.0.0.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Yourtube-1.0.0.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.0
-          name: NontonKu 1.0.0
+          name: Yourtube 1.0.0
           body: |
-            Aplikasi nonton YouTube untuk Android, ditulis dari nol (Kotlin + Jetpack Compose).
+            Aplikasi pemutar YouTube untuk Android, ditulis dari nol (Kotlin + Jetpack Compose).
 
             - Beranda (trending + topik), Pencarian + saran + muat lanjutan
             - Pemain video Media3 (DASH/HLS/progresif dari NewPipeExtractor di perangkat)
@@ -30,4 +30,4 @@ jobs:
 
             Semua data & stream diekstrak langsung di perangkat lewat NewPipeExtractor — tanpa server perantara, tanpa login.
             APK debug — pasang langsung di Android 7.0+.
-          files: NontonKu-1.0.0.apk
+          files: Yourtube-1.0.0.apk

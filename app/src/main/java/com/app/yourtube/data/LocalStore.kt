@@ -1,4 +1,4 @@
-package com.app.nontonku.data
+package com.app.yourtube.data
 
 import android.content.Context
 import kotlinx.serialization.encodeToString

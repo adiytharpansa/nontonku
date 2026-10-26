@@ -1,14 +1,14 @@
-package com.app.nontonku.ui
+package com.app.yourtube.ui
 
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.app.nontonku.data.ChannelDetail
-import com.app.nontonku.data.LocalStore
-import com.app.nontonku.data.NpRepository
-import com.app.nontonku.data.VideoItem
-import com.app.nontonku.data.WatchDetail
+import com.app.yourtube.data.ChannelDetail
+import com.app.yourtube.data.LocalStore
+import com.app.yourtube.data.VideoRepository
+import com.app.yourtube.data.VideoItem
+import com.app.yourtube.data.WatchDetail
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -57,6 +57,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val watch: StateFlow<LoadState<WatchDetail>> = _watch.asStateFlow()
     private val _watchItem = MutableStateFlow<VideoItem?>(null)
     val watchItem: StateFlow<VideoItem?> = _watchItem.asStateFlow()
+    private val _fullscreen = MutableStateFlow(false)
+    val fullscreen: StateFlow<Boolean> = _fullscreen.asStateFlow()
     private val _bookmarked = MutableStateFlow(false)
     val bookmarked: StateFlow<Boolean> = _bookmarked.asStateFlow()
 
@@ -74,7 +76,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val notice: StateFlow<String?> = _notice.asStateFlow()
 
     private var autoFirstPending = false
-    private var homeLoadedOnce = false
+    private var lastChannelUrl = ""
 
     init { loadHome("Semua") }
 
@@ -94,6 +96,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------- Navigasi ----------
     fun goTab(screen: Screen) {
+        _fullscreen.value = false
         _stack.value = listOf(screen)
         if (screen == Screen.LIBRARY) refreshLibrary()
     }
@@ -101,6 +104,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun push(screen: Screen) { _stack.value = _stack.value + screen }
 
     fun back(): Boolean {
+        if (_fullscreen.value) {
+            _fullscreen.value = false
+            return true
+        }
         if (_stack.value.size > 1) {
             _stack.value = _stack.value.dropLast(1)
             return true
@@ -116,14 +123,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val items = withContext(Dispatchers.IO) {
-                    if (query == null) NpRepository.trending() else NpRepository.search(query)
+                    if (query == null) VideoRepository.trending() else VideoRepository.search(query)
                 }
                 _home.value = LoadState.Content(items)
-                homeLoadedOnce = true
-                Log.i("NK_REPO", "home[$topicLabel] ok: ${items.size}")
+                Log.i(TAG, "home[$topicLabel] ok: ${items.size}")
                 maybeAutoFirst()
             } catch (e: Exception) {
-                Log.w("NK_REPO", "home gagal", e)
+                Log.w(TAG, "home gagal", e)
                 _home.value = LoadState.Error(friendlyError(e))
             }
         }
@@ -136,7 +142,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (q.isBlank()) { _suggestions.value = emptyList(); return }
         suggestionJob = viewModelScope.launch {
             delay(300)
-            val list = withContext(Dispatchers.IO) { NpRepository.suggestions(q) }
+            val list = withContext(Dispatchers.IO) { VideoRepository.suggestions(q) }
             if (_query.value == q) _suggestions.value = list
         }
     }
@@ -149,9 +155,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _results.value = LoadState.Loading
         viewModelScope.launch {
             try {
-                val items = withContext(Dispatchers.IO) { NpRepository.search(q) }
+                val items = withContext(Dispatchers.IO) { VideoRepository.search(q) }
                 _results.value = LoadState.Content(items)
-                _hasMore.value = withContext(Dispatchers.IO) { NpRepository.hasNextSearchPage() }
+                _hasMore.value = withContext(Dispatchers.IO) { VideoRepository.hasNextSearchPage() }
             } catch (e: Exception) {
                 _results.value = LoadState.Error(friendlyError(e))
             }
@@ -163,12 +169,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _loadingMore.value = true
         viewModelScope.launch {
             try {
-                val more = withContext(Dispatchers.IO) { NpRepository.searchNext() }
+                val more = withContext(Dispatchers.IO) { VideoRepository.searchNext() }
                 val currentItems = (_results.value as? LoadState.Content)?.data ?: emptyList()
                 _results.value = LoadState.Content(currentItems + more)
-                _hasMore.value = withContext(Dispatchers.IO) { NpRepository.hasNextSearchPage() }
+                _hasMore.value = withContext(Dispatchers.IO) { VideoRepository.hasNextSearchPage() }
             } catch (e: Exception) {
-                Log.w("NK_REPO", "load more gagal", e)
+                Log.w(TAG, "load more gagal", e)
             } finally {
                 _loadingMore.value = false
             }
@@ -180,7 +186,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _watchItem.value = item
         _bookmarked.value = store.isBookmarked(item.id)
         _watch.value = LoadState.Loading
-        push(Screen.WATCH)
+        // Dari video terkait: ganti halaman video, jangan menumpuk — "kembali" langsung ke layar asal.
+        if (current != Screen.WATCH) push(Screen.WATCH)
         loadWatch(item.url)
     }
 
@@ -193,17 +200,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun loadWatch(url: String) {
         viewModelScope.launch {
             try {
-                val detail = withContext(Dispatchers.IO) { NpRepository.watch(url) }
+                val detail = withContext(Dispatchers.IO) { VideoRepository.watch(url) }
                 _watch.value = LoadState.Content(detail)
                 store.addHistory(detail.item)
                 _history.value = store.history()
-                Log.i("NK_REPO", "watch ok: ${detail.item.title} dash=${detail.dashUrl != null} prog=${detail.progressiveUrl != null}")
+                Log.i(TAG, "watch ok: ${detail.item.title} dash=${detail.dashUrl != null} prog=${detail.progressiveUrl != null}")
             } catch (e: Exception) {
-                Log.w("NK_REPO", "watch gagal", e)
+                Log.w(TAG, "watch gagal", e)
                 _watch.value = LoadState.Error(friendlyError(e, isWatch = true))
             }
         }
     }
+
+    fun toggleFullscreen() { _fullscreen.value = !_fullscreen.value }
 
     fun toggleBookmark() {
         val item = _watchItem.value ?: return
@@ -216,11 +225,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // ---------- Channel ----------
     fun openChannel(uploaderUrl: String) {
         if (uploaderUrl.isBlank()) return
-        _channel.value = LoadState.Loading
         push(Screen.CHANNEL)
+        loadChannel(uploaderUrl)
+    }
+
+    fun retryChannel() {
+        if (lastChannelUrl.isNotBlank()) loadChannel(lastChannelUrl)
+    }
+
+    private fun loadChannel(url: String) {
+        lastChannelUrl = url
+        _channel.value = LoadState.Loading
         viewModelScope.launch {
             try {
-                val detail = withContext(Dispatchers.IO) { NpRepository.channel(uploaderUrl) }
+                val detail = withContext(Dispatchers.IO) { VideoRepository.channel(url) }
                 _channel.value = LoadState.Content(detail)
             } catch (e: Exception) {
                 _channel.value = LoadState.Error(friendlyError(e))
@@ -243,6 +261,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun clearNotice() { _notice.value = null }
 
     companion object {
+        private const val TAG = "YT_REPO"
+
         val TOPICS: Map<String, String?> = linkedMapOf(
             "Semua" to null,
             "Musik" to "musik indonesia terbaru",

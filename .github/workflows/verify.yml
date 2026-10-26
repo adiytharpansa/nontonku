@@ -29,7 +29,7 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb shell am start -n com.app.nontonku/.MainActivity --ei auto_first 1
+            adb shell am start -n com.app.yourtube/.MainActivity --ei auto_first 1
             sleep 45
             adb exec-out screencap -p > home.png || true
             sleep 25

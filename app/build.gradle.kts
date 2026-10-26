@@ -5,10 +5,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 android {
-    namespace = "com.app.nontonku"
+    namespace = "com.app.yourtube"
     compileSdk = 35
     defaultConfig {
-        applicationId = "com.app.nontonku"
+        applicationId = "com.app.yourtube"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
